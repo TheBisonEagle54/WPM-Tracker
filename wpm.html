@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WPM Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+<style>
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  background: linear-gradient(135deg, #0f172a, #1e293b);
+  color: white;
+  min-height: 100vh;
+  padding: 40px;
+}
+
+h1 {
+  text-align: center;
+  font-size: 34px;
+  margin-bottom: 40px;
+}
+
+.card {
+  background: rgba(255,255,255,0.05);
+  backdrop-filter: blur(12px);
+  border-radius: 20px;
+  padding: 30px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+}
+
+#wpmChart {
+  width: 100%;
+  height: 400px;
+}
+
+.input-group {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+.input-group input {
+  padding: 10px;
+  border-radius: 10px;
+  border: none;
+  width: 140px;
+  text-align: center;
+  font-weight: 600;
+}
+
+button {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 12px;
+  background: #38bdf8;
+  color: black;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button:hover { background: #0ea5e9; }
+
+.danger {
+  background: #ef4444;
+  color: white;
+}
+
+.danger:hover {
+  background: #dc2626;
+}
+
+</style>
+</head>
+<body>
+
+<h1>Aeon Essays WPM Tracker</h1>
+
+<div class="card">
+  <canvas id="wpmChart"></canvas>
+
+  <div class="input-group">
+    <input type="number" id="wpmInput" placeholder="Enter WPM" />
+    <button onclick="addWPM()">Add Day</button>
+    <button class="danger" onclick="clearLastDay()">Clear Last Day</button>
+    <button class="danger" onclick="clearAll()">Clear All</button>
+  </div>
+</div>
+
+<script>
+const MAX_DAYS = 50;
+let wpmData = JSON.parse(localStorage.getItem("wpmData")) || [];
+
+function saveWPM() {
+  localStorage.setItem("wpmData", JSON.stringify(wpmData));
+}
+
+function addWPM() {
+  const input = document.getElementById("wpmInput");
+  const value = parseInt(input.value);
+  if (!value) return;
+
+  wpmData.push(value);
+
+  if (wpmData.length > MAX_DAYS) {
+    wpmData.shift();
+  }
+
+  input.value = "";
+  saveWPM();
+  drawChart();
+}
+
+function clearLastDay() {
+  if (wpmData.length === 0) return;
+  wpmData.pop();
+  saveWPM();
+  drawChart();
+}
+
+function clearAll() {
+  if (!confirm("Are you sure you want to delete all data?")) return;
+  wpmData = [];
+  saveWPM();
+  drawChart();
+}
+
+function drawChart() {
+  const canvas = document.getElementById("wpmChart");
+  const ctx = canvas.getContext("2d");
+
+  canvas.width = canvas.offsetWidth;
+  canvas.height = 400;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  if (wpmData.length === 0) return;
+
+  const padding = 60;
+  const chartWidth = canvas.width - padding * 2;
+  const chartHeight = canvas.height - padding * 2;
+
+  const maxWPM = Math.max(...wpmData);
+  const roundedMax = Math.ceil(maxWPM / 20) * 20;
+
+  ctx.strokeStyle = "rgba(255,255,255,0.1)";
+  ctx.fillStyle = "#cbd5e1";
+  ctx.font = "14px Inter";
+
+  for (let value = 0; value <= roundedMax; value += 20) {
+    const y = padding + chartHeight - (value / roundedMax) * chartHeight;
+    ctx.beginPath();
+    ctx.moveTo(padding, y);
+    ctx.lineTo(canvas.width - padding, y);
+    ctx.stroke();
+    ctx.fillText(value, 15, y + 5);
+  }
+
+  ctx.strokeStyle = "#38bdf8";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+
+  wpmData.forEach((wpm, index) => {
+    const x = padding + (index / (MAX_DAYS - 1)) * chartWidth;
+    const y = padding + chartHeight - (wpm / roundedMax) * chartHeight;
+
+    if (index === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+
+    ctx.beginPath();
+    ctx.arc(x, y, 5, 0, Math.PI * 2);
+    ctx.fillStyle = "#38bdf8";
+    ctx.fill();
+  });
+
+  ctx.stroke();
+
+  ctx.fillStyle = "#cbd5e1";
+  wpmData.forEach((_, index) => {
+    const x = padding + (index / (MAX_DAYS - 1)) * chartWidth;
+    ctx.fillText(index + 1, x - 5, canvas.height - 20);
+  });
+}
+
+window.addEventListener("resize", drawChart);
+drawChart();
+</script>
+
+</body>
+</html>
